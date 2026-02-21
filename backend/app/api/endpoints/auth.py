@@ -57,7 +57,9 @@ def get_link_status(user_id: int, db: Session = Depends(get_db)):
         
     return PlatformStatus(
         github_linked=bool(user.github_access_token),
-        gitee_linked=bool(user.gitee_access_token)
+        gitee_linked=bool(user.gitee_access_token),
+        github_username=user.github_username,
+        gitee_username=user.gitee_username
     )
 
 @router.get("/oauth/github/login")

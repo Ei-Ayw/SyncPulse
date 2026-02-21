@@ -24,3 +24,5 @@ class UserResponse(BaseModel):
 class PlatformStatus(BaseModel):
     github_linked: bool
     gitee_linked: bool
+    github_username: Optional[str] = None
+    gitee_username: Optional[str] = None

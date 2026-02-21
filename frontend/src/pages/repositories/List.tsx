@@ -64,7 +64,7 @@ export default function Repositories() {
 
     const itemVariants = {
         hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+        visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } }
     };
 
     return (
@@ -142,8 +142,8 @@ export default function Repositories() {
                                         onClick={() => handleSync(repo.clone_url)}
                                         disabled={syncingRepo === repo.clone_url}
                                         className={`px-5 py-2.5 text-sm font-bold rounded-xl transition-all shadow-sm flex items-center ${syncingRepo === repo.clone_url
-                                                ? 'bg-amber-100 text-amber-700'
-                                                : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/20'
+                                            ? 'bg-amber-100 text-amber-700'
+                                            : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/20'
                                             } disabled:opacity-70 disabled:cursor-not-allowed`}
                                     >
                                         {syncingRepo === repo.clone_url ? (

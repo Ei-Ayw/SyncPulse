@@ -4,8 +4,10 @@ interface AuthState {
     userId: number | null;
     githubLinked: boolean;
     giteeLinked: boolean;
+    githubUser: string | null;
+    giteeUser: string | null;
     setUserId: (id: number) => void;
-    setLinked: (github: boolean, gitee: boolean) => void;
+    setLinked: (github: boolean, gitee: boolean, ghUser?: string, gtUser?: string) => void;
     logout: () => void;
 }
 
@@ -13,7 +15,14 @@ export const useAuthStore = create<AuthState>((set) => ({
     userId: 1, // Mocking user 1 for MVP
     githubLinked: false,
     giteeLinked: false,
+    githubUser: null,
+    giteeUser: null,
     setUserId: (id) => set({ userId: id }),
-    setLinked: (github, gitee) => set({ githubLinked: github, giteeLinked: gitee }),
-    logout: () => set({ userId: null, githubLinked: false, giteeLinked: false }),
+    setLinked: (github, gitee, ghUser, gtUser) => set({
+        githubLinked: github,
+        giteeLinked: gitee,
+        githubUser: ghUser || null,
+        giteeUser: gtUser || null
+    }),
+    logout: () => set({ userId: null, githubLinked: false, giteeLinked: false, githubUser: null, giteeUser: null }),
 }));

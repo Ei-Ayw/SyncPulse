@@ -1,16 +1,12 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
-import { Github, KeyRound, Loader2, CheckCircle2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Github, CheckCircle2 } from 'lucide-react';
+import { motion, type Variants } from 'framer-motion';
 
 export default function Accounts() {
     const { userId, githubLinked, giteeLinked, setLinked } = useAuthStore();
     const [loading, setLoading] = useState(false);
-    const [ghToken, setGhToken] = useState('');
-    const [ghUser, setGhUser] = useState('');
-    const [gtToken, setGtToken] = useState('');
-    const [gtUser, setGtUser] = useState('');
 
     useEffect(() => {
         checkStatus();
@@ -19,31 +15,14 @@ export default function Accounts() {
     const checkStatus = async () => {
         try {
             const res = await axios.get(`http://localhost:8000/api/v1/auth/status/${userId}`);
-            setLinked(res.data.github_linked, res.data.gitee_linked);
+            setLinked(
+                res.data.github_linked,
+                res.data.gitee_linked,
+                res.data.github_username,
+                res.data.gitee_username
+            );
         } catch (e) {
             console.error(e);
-        }
-    };
-
-    const handleLink = async (platform: 'github' | 'gitee') => {
-        try {
-            setLoading(true);
-            await axios.post('http://localhost:8000/api/v1/auth/link', {
-                user_id: userId,
-                platform,
-                username: platform === 'github' ? ghUser : gtUser,
-                access_token: platform === 'github' ? ghToken : gtToken
-            });
-            await checkStatus();
-            if (platform === 'github') {
-                setGhToken(''); setGhUser('');
-            } else {
-                setGtToken(''); setGtUser('');
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -59,12 +38,12 @@ export default function Accounts() {
         }
     };
 
-    const variants = {
+    const variants: Variants = {
         hidden: { opacity: 0, y: 15 },
         visible: (i: number) => ({
             opacity: 1,
             y: 0,
-            transition: { delay: i * 0.1, duration: 0.5, ease: "easeOut" }
+            transition: { delay: i * 0.1, duration: 0.5, ease: "easeOut" as const }
         })
     };
 
@@ -89,7 +68,15 @@ export default function Accounts() {
                                     GitHub
                                     {githubLinked && <CheckCircle2 className="w-[22px] h-[22px] ml-3 text-emerald-500" strokeWidth={2.5} />}
                                 </h3>
-                                <p className="text-base text-slate-500 mt-1.5 font-medium">Source repositories platform</p>
+                                <p className="text-base text-slate-500 mt-1.5 font-medium">
+                                    {githubLinked && useAuthStore.getState().githubUser ? (
+                                        <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                                            Connected as <strong>{useAuthStore.getState().githubUser}</strong>
+                                        </span>
+                                    ) : (
+                                        "Source repositories platform"
+                                    )}
+                                </p>
                             </div>
                         </div>
                         {githubLinked ? (
@@ -132,7 +119,15 @@ export default function Accounts() {
                                     Gitee
                                     {giteeLinked && <CheckCircle2 className="w-[22px] h-[22px] ml-3 text-emerald-500" strokeWidth={2.5} />}
                                 </h3>
-                                <p className="text-base text-slate-500 mt-1.5 font-medium">Destination repositories platform</p>
+                                <p className="text-base text-slate-500 mt-1.5 font-medium">
+                                    {giteeLinked && useAuthStore.getState().giteeUser ? (
+                                        <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                                            Connected as <strong>{useAuthStore.getState().giteeUser}</strong>
+                                        </span>
+                                    ) : (
+                                        "Destination repositories platform"
+                                    )}
+                                </p>
                             </div>
                         </div>
                         {giteeLinked ? (
