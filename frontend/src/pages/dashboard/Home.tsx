@@ -1,21 +1,38 @@
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { GitCommit, GitMerge, Activity, ServerCrash, ArrowUpRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-
-// Generate mock data for the heatmap
-const generateHeatmapData = () => {
-    const days = 30 * 4; // roughly 4 months
-    return Array.from({ length: days }).map(() => Math.floor(Math.random() * 5));
-};
+import { useAuthStore } from '../../store/authStore';
 
 export default function Home() {
-    const stats = [
-        { name: 'Total Syncs', value: '1,248', icon: <GitCommit className="w-7 h-7 text-blue-600" />, change: '+12% this week', trend: 'up' },
-        { name: 'Active Auto-Syncs', value: '18', icon: <Activity className="w-7 h-7 text-emerald-600" />, change: 'Steady', trend: 'neutral' },
-        { name: 'Queued Tasks', value: '3', icon: <GitMerge className="w-7 h-7 text-amber-500" />, change: '-2 since yesterday', trend: 'down' },
-        { name: 'Failed Syncs', value: '0', icon: <ServerCrash className="w-7 h-7 text-rose-500" />, change: 'All clear', trend: 'neutral' },
-    ];
+    const { userId } = useAuthStore();
+    const [statsData, setStatsData] = useState({
+        total: 0,
+        active: 0,
+        queued: 0,
+        failed: 0
+    });
+    const [heatmapData, setHeatmapData] = useState<number[]>(Array.from({ length: 120 }).fill(0) as number[]);
 
-    const heatmapData = generateHeatmapData();
+    useEffect(() => {
+        const fetchDashboardStats = async () => {
+            try {
+                const res = await axios.get(`http://localhost:8000/api/v1/sync/dashboard/${userId}`);
+                setStatsData(res.data.stats);
+                setHeatmapData(res.data.heatmapData);
+            } catch (err) {
+                console.error("Failed to fetch dashboard stats", err);
+            }
+        };
+        fetchDashboardStats();
+    }, [userId]);
+
+    const stats = [
+        { name: 'Total Syncs', value: statsData.total.toLocaleString(), icon: <GitCommit className="w-7 h-7 text-blue-600" />, change: 'All time', trend: 'neutral' },
+        { name: 'Active Auto-Syncs', value: statsData.active.toString(), icon: <Activity className="w-7 h-7 text-emerald-600" />, change: 'Running now', trend: statsData.active > 0 ? 'up' : 'neutral' },
+        { name: 'Queued Tasks', value: statsData.queued.toString(), icon: <GitMerge className="w-7 h-7 text-amber-500" />, change: 'Waiting', trend: statsData.queued > 0 ? 'down' : 'neutral' },
+        { name: 'Failed Syncs', value: statsData.failed.toString(), icon: <ServerCrash className="w-7 h-7 text-rose-500" />, change: statsData.failed === 0 ? 'All clear' : 'Needs attention', trend: statsData.failed === 0 ? 'neutral' : 'down' },
+    ];
     const getColorClass = (level: number) => {
         if (level === 0) return 'bg-slate-100';
         if (level === 1) return 'bg-blue-200';

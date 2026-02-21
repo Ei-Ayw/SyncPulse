@@ -5,7 +5,7 @@ import { Github, CheckCircle2 } from 'lucide-react';
 import { motion, type Variants } from 'framer-motion';
 
 export default function Accounts() {
-    const { userId, githubLinked, giteeLinked, setLinked } = useAuthStore();
+    const { userId, githubLinked, giteeLinked, githubUser, giteeUser, setLinked } = useAuthStore();
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -69,9 +69,9 @@ export default function Accounts() {
                                     {githubLinked && <CheckCircle2 className="w-[22px] h-[22px] ml-3 text-emerald-500" strokeWidth={2.5} />}
                                 </h3>
                                 <p className="text-base text-slate-500 mt-1.5 font-medium">
-                                    {githubLinked && useAuthStore.getState().githubUser ? (
+                                    {githubLinked && githubUser ? (
                                         <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-                                            Connected as <strong>{useAuthStore.getState().githubUser}</strong>
+                                            Connected as <strong>{githubUser}</strong>
                                         </span>
                                     ) : (
                                         "Source repositories platform"
@@ -120,9 +120,9 @@ export default function Accounts() {
                                     {giteeLinked && <CheckCircle2 className="w-[22px] h-[22px] ml-3 text-emerald-500" strokeWidth={2.5} />}
                                 </h3>
                                 <p className="text-base text-slate-500 mt-1.5 font-medium">
-                                    {giteeLinked && useAuthStore.getState().giteeUser ? (
+                                    {giteeLinked && giteeUser ? (
                                         <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-                                            Connected as <strong>{useAuthStore.getState().giteeUser}</strong>
+                                            Connected as <strong>{giteeUser}</strong>
                                         </span>
                                     ) : (
                                         "Destination repositories platform"

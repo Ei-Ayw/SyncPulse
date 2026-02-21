@@ -68,3 +68,64 @@ def trigger_sync(req: SyncRequest, db: Session = Depends(get_db)):
         status="queued",
         message="Sync task has been added to the queue"
     )
+
+@router.get("/dashboard/{user_id}")
+def get_dashboard_stats(user_id: int, db: Session = Depends(get_db)):
+    from sqlalchemy import func
+    from datetime import datetime, timedelta, timezone
+
+    tasks = db.query(RepositorySyncTask).filter(RepositorySyncTask.user_id == user_id).all()
+    
+    total = len(tasks)
+    active = len([t for t in tasks if t.status == "syncing"])
+    queued = len([t for t in tasks if t.status == "pending"])
+    failed = len([t for t in tasks if t.status == "failed"])
+    
+    # Generate true heatmap data based on the last 120 days
+    days = 120
+    heatmap_data = [0] * days
+    
+    # Fast path if no tasks
+    if total > 0:
+        now = datetime.now(timezone.utc)
+        
+        # Calculate daily counts
+        for task in tasks:
+            # Check if created_at is naive or aware, enforce timezone.utc comparison
+            created = task.created_at
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+                
+            delta = now - created
+            days_ago = delta.days
+            
+            # If the task falls within our 120 days window
+            if 0 <= days_ago < days:
+                # We want visually older days at the beginning of the array (index 0) 
+                # and recent days at the end of the array (index 119)
+                index = (days - 1) - days_ago
+                heatmap_data[index] += 1
+                
+        # Compress real counts to visual levels (0-4)
+        for i in range(days):
+            val = heatmap_data[i]
+            if val == 0:
+                heatmap_data[i] = 0
+            elif val <= 2:
+                heatmap_data[i] = 1
+            elif val <= 5:
+                heatmap_data[i] = 2
+            elif val <= 10:
+                heatmap_data[i] = 3
+            else:
+                heatmap_data[i] = 4
+
+    return {
+        "stats": {
+            "total": total,
+            "active": active,
+            "queued": queued,
+            "failed": failed,
+        },
+        "heatmapData": heatmap_data
+    }
