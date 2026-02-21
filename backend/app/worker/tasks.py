@@ -32,12 +32,37 @@ def sync_repository(self, task_id: int, github_repo_url: str, gitee_repo_url: st
         if not gt_auth_url.endswith('.git'):
             gt_auth_url += ".git"
 
-        # 2. Create a temporary directory
+        # 2. Ensure Gitee repository exists
+        import requests
+        repo_name = github_repo_url.split("/")[-1].replace(".git", "")
+        # Construction of Gitee username from the URL or better from the token's user info
+        # For now, we trust the gitee_repo_url passed in.
+        
+        # Check if repo exists on Gitee
+        gitee_api_url = f"https://gitee.com/api/v5/repos/{gitee_repo_url.split('/')[-2]}/{repo_name}"
+        res = requests.get(gitee_api_url, params={"access_token": gitee_pat})
+        
+        if res.status_code == 404:
+            self.update_state(state='PROGRESS', meta={'status': 'Creating repository on Gitee...'})
+            print(f"Repository {repo_name} not found on Gitee, creating...")
+            create_res = requests.post(
+                "https://gitee.com/api/v5/user/repos",
+                data={
+                    "access_token": gitee_pat,
+                    "name": repo_name,
+                    "private": True,
+                    "description": f"Mirrored from {github_repo_url}"
+                }
+            )
+            if create_res.status_code != 201:
+                raise Exception(f"Failed to create Gitee repository: {create_res.text}")
+
+        # 3. Create a temporary directory
         with tempfile.TemporaryDirectory() as temp_dir:
             self.update_state(state='PROGRESS', meta={'status': 'Cloning from GitHub...'})
             print(f"Cloning {github_repo_url} into {temp_dir}")
             
-            # 3. Clone mirror from GitHub
+            # 4. Clone mirror from GitHub
             clone_cmd = ["git", "clone", "--mirror", gh_auth_url, "repo.git"]
             subprocess.run(clone_cmd, cwd=temp_dir, check=True, capture_output=True, text=True)
             
@@ -46,7 +71,7 @@ def sync_repository(self, task_id: int, github_repo_url: str, gitee_repo_url: st
             self.update_state(state='PROGRESS', meta={'status': 'Pushing to Gitee...'})
             print(f"Pushing to {gitee_repo_url}")
             
-            # 4. Push mirror to Gitee
+            # 5. Push mirror to Gitee
             push_cmd = ["git", "push", "--mirror", gt_auth_url]
             subprocess.run(push_cmd, cwd=repo_dir, check=True, capture_output=True, text=True)
 
