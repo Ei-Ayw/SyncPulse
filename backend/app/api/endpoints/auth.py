@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from app.core.database import get_db
+from app.core.config import settings
 from app.models.user import User
 from app.schemas.user import TokenLinkRequest, UserResponse, PlatformStatus
+import requests
 
 router = APIRouter()
 
@@ -56,3 +59,77 @@ def get_link_status(user_id: int, db: Session = Depends(get_db)):
         github_linked=bool(user.github_access_token),
         gitee_linked=bool(user.gitee_access_token)
     )
+
+@router.get("/oauth/github/login")
+def github_login(user_id: int):
+    client_id = settings.GITHUB_CLIENT_ID
+    redirect_uri = f"http://localhost:8000/api/v1/auth/oauth/github/callback?user_id={user_id}"
+    return RedirectResponse(f"https://github.com/login/oauth/authorize?client_id={client_id}&redirect_uri={redirect_uri}&scope=repo")
+
+@router.get("/oauth/github/callback")
+def github_callback(code: str, user_id: int, db: Session = Depends(get_db)):
+    token_url = "https://github.com/login/oauth/access_token"
+    headers = {"Accept": "application/json"}
+    payload = {
+        "client_id": settings.GITHUB_CLIENT_ID,
+        "client_secret": settings.GITHUB_CLIENT_SECRET,
+        "code": code
+    }
+    res = requests.post(token_url, json=payload, headers=headers)
+    token_data = res.json()
+    access_token = token_data.get("access_token")
+
+    if not access_token:
+        raise HTTPException(status_code=400, detail="Failed to retrieve GitHub access token")
+
+    # Get user info to fetch username
+    user_res = requests.get("https://api.github.com/user", headers={"Authorization": f"Bearer {access_token}"})
+    username = user_res.json().get("login")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        user = User(id=user_id)
+        db.add(user)
+    
+    user.github_username = username
+    user.github_access_token = access_token
+    db.commit()
+
+    return RedirectResponse(f"{settings.FRONTEND_URL}/settings")
+
+@router.get("/oauth/gitee/login")
+def gitee_login(user_id: int):
+    client_id = settings.GITEE_CLIENT_ID
+    redirect_uri = f"http://localhost:8000/api/v1/auth/oauth/gitee/callback?user_id={user_id}"
+    return RedirectResponse(f"https://gitee.com/oauth/authorize?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope=user_info%20projects")
+
+@router.get("/oauth/gitee/callback")
+def gitee_callback(code: str, user_id: int, db: Session = Depends(get_db)):
+    token_url = "https://gitee.com/oauth/token"
+    payload = {
+        "grant_type": "authorization_code",
+        "code": code,
+        "client_id": settings.GITEE_CLIENT_ID,
+        "client_secret": settings.GITEE_CLIENT_SECRET,
+        "redirect_uri": f"http://localhost:8000/api/v1/auth/oauth/gitee/callback?user_id={user_id}"
+    }
+    res = requests.post(token_url, data=payload)
+    token_data = res.json()
+    access_token = token_data.get("access_token")
+
+    if not access_token:
+        raise HTTPException(status_code=400, detail="Failed to retrieve Gitee access token")
+
+    user_res = requests.get(f"https://gitee.com/api/v5/user?access_token={access_token}")
+    username = user_res.json().get("login")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        user = User(id=user_id)
+        db.add(user)
+
+    user.gitee_username = username
+    user.gitee_access_token = access_token
+    db.commit()
+
+    return RedirectResponse(f"{settings.FRONTEND_URL}/settings")

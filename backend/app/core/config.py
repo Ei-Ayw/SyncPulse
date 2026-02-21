@@ -4,6 +4,13 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     PROJECT_NAME: str = "GitHub-Gitee Sync API"
     BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5174")
+
+    # OAuth Application credentials
+    GITHUB_CLIENT_ID: str = os.getenv("GITHUB_CLIENT_ID", "")
+    GITHUB_CLIENT_SECRET: str = os.getenv("GITHUB_CLIENT_SECRET", "")
+    GITEE_CLIENT_ID: str = os.getenv("GITEE_CLIENT_ID", "")
+    GITEE_CLIENT_SECRET: str = os.getenv("GITEE_CLIENT_SECRET", "")
 
     # MySQL configurations
     MYSQL_USER: str = os.getenv("MYSQL_USER", "root")

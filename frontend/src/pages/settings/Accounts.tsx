@@ -106,29 +106,14 @@ export default function Accounts() {
                     </div>
 
                     {!githubLinked && (
-                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-8 flex flex-col space-y-4 max-w-md ml-[5.5rem]">
-                            <input
-                                type="text" placeholder="GitHub Username"
-                                className="w-full px-5 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl text-base placeholder:text-slate-400 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none"
-                                value={ghUser} onChange={e => setGhUser(e.target.value)}
-                            />
-                            <div className="relative">
-                                <KeyRound className="absolute left-4 top-[14px] w-[22px] h-[22px] text-slate-400" />
-                                <input
-                                    type="password" placeholder="Personal Access Token"
-                                    className="w-full pl-[3.25rem] pr-5 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl text-base placeholder:text-slate-400 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none"
-                                    value={ghToken} onChange={e => setGhToken(e.target.value)}
-                                />
-                            </div>
-                            <motion.button
-                                whileHover={{ scale: 1.01, y: -1 }}
-                                whileTap={{ scale: 0.99 }}
-                                onClick={() => handleLink('github')}
-                                disabled={loading || !ghUser || !ghToken}
-                                className="w-full mt-2 px-5 py-4 bg-slate-900 text-white font-bold text-base rounded-2xl shadow-lg shadow-slate-900/20 hover:shadow-xl hover:shadow-slate-900/30 transition-all disabled:opacity-50 flex justify-center items-center"
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-8 flex flex-col space-y-4 ml-[5.5rem] items-start">
+                            <a
+                                href={`http://localhost:8000/api/v1/auth/oauth/github/login?user_id=${userId}`}
+                                className="px-6 py-3.5 bg-slate-900 text-white font-bold text-base rounded-2xl shadow-lg shadow-slate-900/20 hover:shadow-xl hover:shadow-slate-900/30 transition-all flex items-center gap-3"
                             >
-                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Connect Account'}
-                            </motion.button>
+                                <Github className="w-5 h-5" />
+                                <span className="pr-2">Authorize with GitHub OAuth</span>
+                            </a>
                         </motion.div>
                     )}
                 </div>
@@ -164,29 +149,16 @@ export default function Accounts() {
                     </div>
 
                     {!giteeLinked && (
-                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-8 flex flex-col space-y-4 max-w-md ml-[5.5rem]">
-                            <input
-                                type="text" placeholder="Gitee Username"
-                                className="w-full px-5 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl text-base placeholder:text-slate-400 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none"
-                                value={gtUser} onChange={e => setGtUser(e.target.value)}
-                            />
-                            <div className="relative">
-                                <KeyRound className="absolute left-4 top-[14px] w-[22px] h-[22px] text-slate-400" />
-                                <input
-                                    type="password" placeholder="Personal Access Token"
-                                    className="w-full pl-[3.25rem] pr-5 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl text-base placeholder:text-slate-400 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none"
-                                    value={gtToken} onChange={e => setGtToken(e.target.value)}
-                                />
-                            </div>
-                            <motion.button
-                                whileHover={{ scale: 1.01, y: -1 }}
-                                whileTap={{ scale: 0.99 }}
-                                onClick={() => handleLink('gitee')}
-                                disabled={loading || !gtUser || !gtToken}
-                                className="w-full mt-2 px-5 py-4 bg-red-600 text-white font-bold text-base rounded-2xl shadow-lg shadow-red-600/20 hover:shadow-xl hover:shadow-red-600/30 hover:bg-red-500 transition-all disabled:opacity-50 flex justify-center items-center"
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-8 flex flex-col space-y-4 ml-[5.5rem] items-start">
+                            <a
+                                href={`http://localhost:8000/api/v1/auth/oauth/gitee/login?user_id=${userId}`}
+                                className="px-6 py-3.5 bg-red-600 text-white font-bold text-base rounded-2xl shadow-lg shadow-red-600/20 hover:shadow-xl hover:shadow-red-600/30 hover:bg-red-500 transition-all flex items-center gap-3"
                             >
-                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Connect Account'}
-                            </motion.button>
+                                <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 1024 1024" fill="currentColor">
+                                    <path d="M512 1024C229.2 1024 0 794.8 0 512S229.2 0 512 0s512 229.2 512 512-229.2 512-512 512zm259.5-568.8H293v-95.2h478.5v95.2zm0 181.8H481.5v-92.7h290v92.7z"></path>
+                                </svg>
+                                <span className="pr-2">Authorize with Gitee OAuth</span>
+                            </a>
                         </motion.div>
                     )}
                 </div>
