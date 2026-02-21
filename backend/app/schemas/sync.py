@@ -1,0 +1,19 @@
+from pydantic import BaseModel
+from typing import List, Optional
+
+class RepoInfo(BaseModel):
+    name: str
+    full_name: str
+    html_url: str
+    description: Optional[str]
+    private: bool
+    clone_url: str
+
+class SyncRequest(BaseModel):
+    user_id: int
+    github_repo_url: str
+
+class SyncResponse(BaseModel):
+    task_id: int
+    status: str
+    message: str
