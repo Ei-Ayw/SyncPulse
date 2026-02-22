@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
-import { Github, PlayCircle, Loader2, Search, ArrowRight, RefreshCw } from 'lucide-react';
+import { Github, Search, ArrowRight, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '../../lib/utils';
 
 interface Repo {
     name: string;
@@ -10,7 +11,34 @@ interface Repo {
     html_url: string;
     clone_url: string;
     description: string;
+    sync_status?: 'pending' | 'syncing' | 'completed' | 'failed' | null;
+    activity_data?: number[];
 }
+
+const GiteeIcon = ({ className }: { className?: string }) => (
+    <div className={cn("bg-[#c71d23] rounded-[4px] flex items-center justify-center p-0.5", className)}>
+        <svg viewBox="0 0 24 24" className="w-full h-full text-white fill-current">
+            <path d="M11.977 24c6.626 0 11.998-5.372 11.998-12S18.604 0 11.977 0C5.352 0 .002 5.372.002 12s5.35 12 11.975 12zM6.166 6.848h11.621v2.105H8.381v2.105h9.406v2.105H8.381v2.105h9.406v2.105H6.166V6.848z" />
+        </svg>
+    </div>
+);
+
+const MiniHeatmap = ({ data }: { data?: number[] }) => (
+    <div className="grid grid-cols-7 gap-0.5">
+        {(data?.slice(-21) || [...Array(21)]).map((level, i) => (
+            <div
+                key={i}
+                className={cn(
+                    "w-1.5 h-1.5 rounded-[1px]",
+                    level === 0 ? "bg-white/10" :
+                        level === 1 ? "bg-emerald-500/30" :
+                            level === 2 ? "bg-emerald-500/50" :
+                                level === 3 ? "bg-emerald-500/80" : "bg-emerald-400"
+                )}
+            />
+        ))}
+    </div>
+);
 
 export default function Repositories() {
     const { userId } = useAuthStore();
@@ -18,9 +46,12 @@ export default function Repositories() {
     const [loading, setLoading] = useState(false);
     const [syncingRepo, setSyncingRepo] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [stats, setStats] = useState({ total: 0, active: 0, failed: 0 });
+    const [heatmapData, setHeatmapData] = useState<number[]>([]);
 
     useEffect(() => {
         fetchRepos();
+        fetchDashboard();
     }, [userId]);
 
     const fetchRepos = async () => {
@@ -35,6 +66,16 @@ export default function Repositories() {
         }
     };
 
+    const fetchDashboard = async () => {
+        try {
+            const res = await axios.get(`http://localhost:8000/api/v1/sync/dashboard/${userId}`);
+            setStats(res.data.stats);
+            setHeatmapData(res.data.heatmapData);
+        } catch (err) {
+            console.error("Dashboard failed", err);
+        }
+    };
+
     const handleSync = async (repoUrl: string) => {
         try {
             setSyncingRepo(repoUrl);
@@ -42,7 +83,12 @@ export default function Repositories() {
                 user_id: userId,
                 github_repo_url: repoUrl
             });
-            setTimeout(() => setSyncingRepo(null), 3000);
+            // Polling or refreshing after a delay
+            setTimeout(() => {
+                fetchRepos();
+                fetchDashboard();
+                setSyncingRepo(null);
+            }, 2000);
         } catch (error) {
             console.error("Failed to trigger sync", error);
             setSyncingRepo(null);
@@ -54,120 +100,178 @@ export default function Repositories() {
         (repo.description && repo.description.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: { staggerChildren: 0.05 }
-        }
+    const getStatusText = (repo: Repo) => {
+        if (syncingRepo === repo.clone_url) return "Syncing...";
+        if (repo.sync_status === 'syncing' || repo.sync_status === 'pending') return "Syncing...";
+        if (repo.sync_status === 'completed') return "Completed";
+        if (repo.sync_status === 'failed') return "Failed";
+        return "Not Mirrored";
     };
 
-    const itemVariants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } }
+    const getStatusColor = (repo: Repo) => {
+        const text = getStatusText(repo);
+        if (text === "Syncing...") return "text-blue-400 animate-pulse";
+        if (text === "Completed") return "text-emerald-500/80";
+        if (text === "Failed") return "text-rose-500/80";
+        return "text-white/20";
     };
 
     return (
-        <div className="max-w-6xl mx-auto pb-16 space-y-8">
-            <header className="mb-10 px-2 flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, ease: "easeOut" }}>
-                    <h1 className="text-[2.5rem] font-bold tracking-tight text-slate-900 leading-tight">Repositories</h1>
-                    <p className="text-lg text-slate-500 mt-2 font-medium">Select and mirror your GitHub repositories to Gitee.</p>
-                </motion.div>
+        <div className="max-w-5xl mx-auto pb-16">
+            <header className="mb-12 flex items-center justify-between">
+                <div>
+                    <h1 className="text-4xl font-bold tracking-tight text-white mb-2">Sync Projects</h1>
+                    <p className="text-white/40 font-medium">Manage your repository mirrors</p>
+                </div>
 
-                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="flex items-center gap-4">
-                    <div className="relative group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                <div className="flex items-center gap-4">
+                    <div className="bg-white/5 border border-white/10 p-1.5 flex items-center gap-2 rounded-2xl">
+                        <div className="px-4 py-2 bg-white/10 rounded-xl flex items-center gap-2">
+                            <Github className="w-4 h-4 text-white/60" />
+                            <span className="text-sm font-semibold text-white/80 transition-colors">GitHub</span>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-white/20" />
+                        <div className="px-4 py-2 hover:bg-white/5 rounded-xl flex items-center gap-2 cursor-pointer group transition-all">
+                            <GiteeIcon className="w-4 h-4 opacity-60 group-hover:opacity-100" />
+                            <span className="text-sm font-medium text-white/40 group-hover:text-white/60">Gitee</span>
+                        </div>
+                    </div>
+
+                    <div className="relative">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                         <input
                             type="text"
-                            placeholder="Search repositories..."
+                            placeholder="Find repository..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-12 pr-6 py-3.5 bg-white border border-slate-200/80 rounded-full shadow-sm text-base placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-400 transition-all w-full md:w-80"
+                            className="pl-11 pr-5 py-3 bg-white/5 border border-white/10 rounded-2xl text-sm placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/50 w-64 transition-all"
                         />
                     </div>
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={fetchRepos}
-                        className="p-3.5 bg-white text-slate-600 border border-slate-200/80 rounded-full shadow-sm hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all"
-                        title="Refresh List"
-                    >
-                        <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin text-blue-500' : ''}`} />
-                    </motion.button>
-                </motion.div>
+                </div>
             </header>
 
             {loading && repos.length === 0 ? (
                 <div className="flex flex-col justify-center items-center h-64 space-y-4">
-                    <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
-                    <p className="text-slate-500 font-medium animate-pulse">Fetching repositories from GitHub...</p>
+                    <div className="w-12 h-12 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
                 </div>
             ) : (
-                <motion.div
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="visible"
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                >
-                    <AnimatePresence>
-                        {filteredRepos.map((repo) => (
-                            <motion.div
-                                key={repo.full_name}
-                                variants={itemVariants}
-                                layout
-                                className="bg-white rounded-[2rem] p-7 shadow-lg shadow-slate-200/30 border border-slate-100/80 hover:shadow-xl hover:shadow-slate-200/50 transition-all group relative overflow-hidden flex flex-col"
-                            >
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-slate-50 to-transparent opacity-50 pointer-events-none rounded-bl-full"></div>
+                <div className="flex gap-10">
+                    {/* Left List */}
+                    <div className="flex-1 space-y-6">
+                        <AnimatePresence mode="popLayout">
+                            {filteredRepos.map((repo, idx) => {
+                                const statusText = getStatusText(repo);
+                                const isSyncing = statusText === "Syncing...";
+                                return (
+                                    <motion.div
+                                        key={repo.full_name}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: idx * 0.05 }}
+                                        layout
+                                        className={cn(
+                                            "group relative p-8 rounded-[2.5rem] border transition-all duration-500 cursor-pointer overflow-hidden",
+                                            isSyncing
+                                                ? "bg-blue-600/10 border-blue-500/40 shadow-[0_0_40px_rgba(37,99,235,0.15)]"
+                                                : "bg-[#0f0f12] border-white/5 hover:border-white/10 hover:bg-[#141417]"
+                                        )}
+                                        onClick={() => handleSync(repo.clone_url)}
+                                    >
+                                        {/* Status Header */}
+                                        <div className="flex justify-between items-start mb-6">
+                                            <div className="flex items-center gap-2.5">
+                                                <Github className="w-5 h-5 text-white/60" />
+                                                <div className="w-1.5 h-px bg-white/20" />
+                                                <GiteeIcon className="w-4 h-4" />
+                                            </div>
 
-                                <div className="flex items-start justify-between mb-5 z-10">
-                                    <div className="p-3 bg-slate-50 rounded-[1.25rem] border border-slate-100/80 group-hover:bg-blue-50 transition-colors">
-                                        <Github className="w-6 h-6 text-slate-700 group-hover:text-blue-600 transition-colors" />
+                                            <div className="flex items-center gap-4">
+                                                <MiniHeatmap data={repo.activity_data} />
+                                                <span className={cn(
+                                                    "text-xs font-bold uppercase tracking-wider",
+                                                    getStatusColor(repo)
+                                                )}>
+                                                    {statusText}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <h3 className="text-2xl font-bold text-white mb-8 tracking-tight group-hover:text-blue-400 transition-colors uppercase">{repo.name}</h3>
+
+                                        {/* Progress Bar */}
+                                        <div className="relative h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                            <motion.div
+                                                className={cn(
+                                                    "absolute h-full rounded-full transition-all duration-1000",
+                                                    isSyncing
+                                                        ? "bg-gradient-to-r from-blue-600 to-blue-300 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+                                                        : statusText === "Completed" ? "bg-emerald-500/50" : "bg-transparent"
+                                                )}
+                                                initial={{ width: 0 }}
+                                                animate={{ width: isSyncing ? "60%" : statusText === "Completed" ? "100%" : "0%" }}
+                                            />
+                                        </div>
+
+                                        {/* Hover Overlay */}
+                                        <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                                    </motion.div>
+                                );
+                            })}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Right Side Activity */}
+                    <div className="w-80 hidden lg:block">
+                        <div className="bg-[#0f0f12]/80 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-8 sticky top-10">
+                            <h3 className="text-lg font-bold text-white mb-6">Activity</h3>
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-12 gap-1.5">
+                                    {(heatmapData.slice(-60)).map((level, i) => (
+                                        <div
+                                            key={i}
+                                            className={cn(
+                                                "aspect-square rounded-[3px]",
+                                                level === 0 ? "bg-white/5" :
+                                                    level === 1 ? "bg-emerald-500/30" :
+                                                        level === 2 ? "bg-emerald-500/50" :
+                                                            level === 3 ? "bg-emerald-500/80" : "bg-emerald-500"
+                                            )}
+                                        />
+                                    ))}
+                                </div>
+                                <div className="flex justify-between items-center pt-4">
+                                    <span className="text-[10px] text-white/20 font-bold uppercase tracking-widest">Yearly active</span>
+                                    <div className="flex gap-1">
+                                        <div className="w-2 h-2 rounded-sm bg-white/5" />
+                                        <div className="w-2 h-2 rounded-sm bg-emerald-500/40" />
+                                        <div className="w-2 h-2 rounded-sm bg-emerald-500" />
                                     </div>
                                 </div>
+                            </div>
 
-                                <h3 className="text-xl font-bold text-slate-900 break-words mb-2 z-10 leading-snug">{repo.name}</h3>
-                                <p className="text-sm text-slate-500 font-medium mb-8 line-clamp-2 z-10 flex-1">
-                                    {repo.description || 'No description provided.'}
-                                </p>
-
-                                <div className="pt-5 border-t border-slate-100/80 flex justify-between items-center z-10 mt-auto">
-                                    <a href={repo.html_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-slate-400 hover:text-slate-700 transition-colors flex items-center gap-1 group/link">
-                                        GitHub
-                                        <ArrowRight className="w-3.5 h-3.5 -translate-x-1 opacity-0 group-hover/link:opacity-100 group-hover/link:translate-x-0 transition-all" />
-                                    </a>
-                                    <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={() => handleSync(repo.clone_url)}
-                                        disabled={syncingRepo === repo.clone_url}
-                                        className={`px-5 py-2.5 text-sm font-bold rounded-xl transition-all shadow-sm flex items-center ${syncingRepo === repo.clone_url
-                                            ? 'bg-amber-100 text-amber-700'
-                                            : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/20'
-                                            } disabled:opacity-70 disabled:cursor-not-allowed`}
-                                    >
-                                        {syncingRepo === repo.clone_url ? (
-                                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Syncing</>
-                                        ) : (
-                                            <><PlayCircle className="w-4 h-4 mr-2" /> Mirror</>
-                                        )}
-                                    </motion.button>
+                            <div className="mt-12 pt-8 border-t border-white/5 space-y-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400">
+                                        <RefreshCw className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-white/80">{stats.total} Total Syncs</p>
+                                        <p className="text-xs text-white/30 font-medium font-bold">ALL TIME</p>
+                                    </div>
                                 </div>
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
-
-                    {filteredRepos.length === 0 && !loading && (
-                        <motion.div
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                            className="col-span-full py-20 text-center bg-white/50 backdrop-blur-sm rounded-[2rem] border border-dashed border-slate-300"
-                        >
-                            <Github className="w-14 h-14 text-slate-300 mx-auto mb-4" />
-                            <h3 className="text-xl font-bold text-slate-700">No repositories found</h3>
-                            <p className="text-slate-500 mt-2 font-medium">Try adjusting your search or ensure your GitHub account is connected.</p>
-                        </motion.div>
-                    )}
-                </motion.div>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                                        <ArrowRight className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-white/80">{stats.total > 0 ? (100 - (stats.failed / stats.total * 100)).toFixed(1) : 100}% Success</p>
+                                        <p className="text-xs text-white/30 font-medium font-bold uppercase">Auto-retry active</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

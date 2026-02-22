@@ -26,7 +26,44 @@ def list_github_repos(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=response.status_code, detail="Failed to fetch repositories from GitHub")
         
     repos = response.json()
-    return [RepoInfo(**repo) for repo in repos]
+    
+    # Get all sync tasks for this user
+    sync_tasks = db.query(RepositorySyncTask).filter(RepositorySyncTask.user_id == user_id).all()
+    
+    # Pre-process tasks into maps for efficiency
+    status_map = {}
+    activity_map = {} # Maps repo_url -> list of 21 counters
+    
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    
+    for task in sync_tasks:
+        url = task.github_repo_url
+        status_map[url] = task.status
+        
+        # Calculate activity for heatmap (last 21 days)
+        if url not in activity_map:
+            activity_map[url] = [0] * 21
+            
+        created = task.created_at
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+            
+        delta = now - created
+        days_ago = delta.days
+        if 0 <= days_ago < 21:
+            index = 20 - days_ago
+            activity_map[url][index] += 1
+
+    repo_list = []
+    for r in repos:
+        info = RepoInfo(**r)
+        url = info.clone_url
+        info.sync_status = status_map.get(url)
+        info.activity_data = activity_map.get(url, [0] * 21) # Default to 21 empty dots
+        repo_list.append(info)
+        
+    return repo_list
 
 @router.post("/trigger", response_model=SyncResponse)
 def trigger_sync(req: SyncRequest, db: Session = Depends(get_db)):

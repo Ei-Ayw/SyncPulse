@@ -8,6 +8,8 @@ class RepoInfo(BaseModel):
     description: Optional[str]
     private: bool
     clone_url: str
+    sync_status: Optional[str] = None
+    activity_data: Optional[list[int]] = None
 
 class SyncRequest(BaseModel):
     user_id: int
