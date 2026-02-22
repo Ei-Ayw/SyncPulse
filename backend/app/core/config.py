@@ -2,7 +2,7 @@ import os
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "GitHub-Gitee Sync API"
+    PROJECT_NAME: str = "SyncPulse API"
     BACKEND_CORS_ORIGINS: list[str] = [
         "http://localhost:5173", 
         "http://localhost:3000", 
