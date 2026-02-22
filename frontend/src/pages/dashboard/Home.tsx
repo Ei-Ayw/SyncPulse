@@ -17,7 +17,7 @@ export default function Home() {
     useEffect(() => {
         const fetchDashboardStats = async () => {
             try {
-                const res = await axios.get(`http://localhost:8000/api/v1/sync/dashboard/${userId}`);
+                const res = await axios.get(`http://localhost:8001/api/v1/sync/dashboard/${userId}`);
                 setStatsData(res.data.stats);
                 setHeatmapData(res.data.heatmapData);
             } catch (err) {

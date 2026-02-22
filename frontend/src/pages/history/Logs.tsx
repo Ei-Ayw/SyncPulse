@@ -1,32 +1,33 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
-import { CheckCircle2, XCircle, Clock, RefreshCw, Github, GitBranch } from 'lucide-react';
+import {
+    CheckCircle2,
+    XCircle,
+    RefreshCw,
+    Clock,
+    ChevronRight,
+    ExternalLink,
+    Filter,
+    Calendar,
+    ArrowRightLeft
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
 
 interface SyncLog {
     id: number;
-    github_repo_url: string;
-    gitee_repo_url: string;
-    status: 'pending' | 'syncing' | 'completed' | 'failed';
+    github_repo_url: str;
+    gitee_repo_url: str;
+    status: 'completed' | 'failed' | 'syncing' | 'pending';
     error_message: string | null;
     created_at: string;
-    updated_at: string | null;
 }
-
-const GiteeIcon = ({ className }: { className?: string }) => (
-    <div className={cn("bg-[#c71d23] rounded-[4px] flex items-center justify-center p-0.5", className)}>
-        <svg viewBox="0 0 24 24" className="w-full h-full text-white fill-current">
-            <path d="M11.977 24c6.626 0 11.998-5.372 11.998-12S18.604 0 11.977 0C5.352 0 .002 5.372.002 12s5.35 12 11.975 12zM6.166 6.848h11.621v2.105H8.381v2.105h9.406v2.105H8.381v2.105h9.406v2.105H6.166V6.848z" />
-        </svg>
-    </div>
-);
 
 export default function SyncLogs() {
     const { userId } = useAuthStore();
     const [logs, setLogs] = useState<SyncLog[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<string>('all');
 
     useEffect(() => {
@@ -37,7 +38,7 @@ export default function SyncLogs() {
         try {
             setLoading(true);
             const queryParam = statusFilter !== 'all' ? `?status=${statusFilter}` : '';
-            const res = await axios.get(`http://localhost:8000/api/v1/logs/${userId}${queryParam}`);
+            const res = await axios.get(`http://localhost:8001/api/v1/logs/${userId}${queryParam}`);
             setLogs(res.data);
         } catch (error) {
             console.error("Failed to fetch sync logs", error);
@@ -58,9 +59,20 @@ export default function SyncLogs() {
     const extractRepoName = (url: string) => {
         try {
             return url.split('/').slice(-1)[0].replace('.git', '');
-        } catch {
+        } catch (e) {
             return url;
         }
+    };
+
+    const formatDate = (dateStr: string) => {
+        const date = new Date(dateStr);
+        return new Intl.DateTimeFormat('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        }).format(date);
     };
 
     const containerVariants = {
@@ -74,23 +86,23 @@ export default function SyncLogs() {
     };
 
     return (
-        <div className="max-w-5xl mx-auto pb-16">
-            <header className="mb-12 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto pb-16">
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 px-2">
                 <div>
                     <h1 className="text-4xl font-bold tracking-tight text-white mb-2">Sync History</h1>
                     <p className="text-white/40 font-medium font-bold uppercase tracking-widest text-[10px]">Review all repository synchronization logs</p>
                 </div>
 
-                <div className="flex bg-white/5 border border-white/10 p-1.5 rounded-2xl gap-1">
-                    {['all', 'completed', 'failed', 'syncing'].map(status => (
+                <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5 backdrop-blur-sm">
+                    {['all', 'completed', 'failed', 'syncing'].map((status) => (
                         <button
                             key={status}
                             onClick={() => setStatusFilter(status)}
                             className={cn(
-                                "px-5 py-2.5 rounded-xl text-xs font-bold capitalize transition-all",
+                                "px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300",
                                 statusFilter === status
-                                    ? "bg-white text-slate-900 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
-                                    : "text-white/40 hover:text-white/70 hover:bg-white/5"
+                                    ? "bg-white text-slate-900 shadow-xl"
+                                    : "text-white/40 hover:text-white"
                             )}
                         >
                             {status}
@@ -99,23 +111,42 @@ export default function SyncLogs() {
                 </div>
             </header>
 
-            {loading && logs.length === 0 ? (
-                <div className="flex flex-col justify-center items-center h-[400px] bg-[#0f0f12]/50 border border-white/5 rounded-[2.5rem] backdrop-blur-xl">
-                    <div className="w-12 h-12 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
-                </div>
-            ) : logs.length === 0 ? (
-                <div className="flex flex-col justify-center items-center h-[400px] bg-[#0f0f12]/50 border border-white/5 rounded-[2.5rem] backdrop-blur-xl opacity-40">
-                    <Clock className="w-14 h-14 text-white/20 mb-6" />
-                    <p className="text-xl font-bold text-white tracking-tight">No history found</p>
-                </div>
-            ) : (
-                <motion.div
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="visible"
-                    className="grid grid-cols-1 gap-4"
-                >
-                    <AnimatePresence mode="popLayout">
+            <AnimatePresence mode="wait">
+                {loading ? (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="flex flex-col justify-center items-center h-96 space-y-8"
+                    >
+                        <div className="relative w-20 h-20">
+                            <div className="absolute inset-0 border-4 border-blue-500/10 rounded-full" />
+                            <div className="absolute inset-0 border-4 border-t-blue-500 rounded-full animate-spin" />
+                            <div className="absolute inset-0 blur-xl border-4 border-t-blue-500 rounded-full animate-spin opacity-40" />
+                        </div>
+                        <div className="flex flex-col items-center">
+                            <p className="text-white/80 font-bold uppercase tracking-[0.3em] text-[10px] animate-pulse">Accessing Logs</p>
+                        </div>
+                    </motion.div>
+                ) : logs.length === 0 ? (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex flex-col items-center justify-center h-80 bg-white/5 border border-white/5 rounded-[3rem] text-center p-12"
+                    >
+                        <div className="w-16 h-16 bg-white/5 rounded-3xl flex items-center justify-center mb-6">
+                            <Filter className="w-8 h-8 text-white/10" />
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-2">No results found</h3>
+                        <p className="text-white/30 text-sm max-w-xs">We couldn't find any sync logs matching your current filter.</p>
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="visible"
+                        className="space-y-4"
+                    >
                         {logs.map((log) => {
                             const statusInfo = getStatusInfo(log.status);
                             return (
@@ -125,60 +156,76 @@ export default function SyncLogs() {
                                     layout
                                     className="group relative bg-[#0f0f12]/80 backdrop-blur-xl border border-white/5 rounded-[2rem] p-8 hover:bg-[#141417] hover:border-white/10 transition-all duration-300 overflow-hidden"
                                 >
-                                    <div className="flex items-center justify-between gap-8 relative z-10">
-                                        <div className="flex items-center gap-6 flex-1 min-w-0">
-                                            <div className={cn("p-4 rounded-2xl flex items-center justify-center shadow-lg", statusInfo.bg, statusInfo.border)}>
-                                                {statusInfo.icon}
-                                            </div>
-
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-3 mb-2">
-                                                    <Github className="w-4 h-4 text-white/40" />
-                                                    <span className="text-lg font-bold text-white tracking-tight uppercase group-hover:text-blue-400 transition-colors">
-                                                        {extractRepoName(log.github_repo_url)}
-                                                    </span>
-                                                    <div className="w-1.5 h-px bg-white/20" />
-                                                    <GiteeIcon className="w-4 h-4" />
-                                                </div>
-
-                                                <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-white/20">
-                                                    <span>{new Date(log.created_at).toLocaleString()}</span>
-                                                    {log.error_message && (
-                                                        <span className="text-rose-500/80 normal-case tracking-normal truncate max-w-[300px]">
-                                                            ERR: {log.error_message}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
+                                    <div className="flex flex-col lg:flex-row lg:items-center gap-8 relative z-10">
+                                        <div className={cn(
+                                            "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border transition-transform duration-500 group-hover:scale-110 shadow-lg",
+                                            statusInfo.bg,
+                                            statusInfo.border
+                                        )}>
+                                            {statusInfo.icon}
                                         </div>
 
-                                        <div className="flex flex-col items-end gap-3 translate-x-2 group-hover:translate-x-0 transition-transform">
-                                            <span className={cn(
-                                                "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-sm",
-                                                statusInfo.color, statusInfo.bg, statusInfo.border
-                                            )}>
-                                                {log.status}
-                                            </span>
-                                            <button
-                                                onClick={() => window.open(log.gitee_repo_url, '_blank')}
-                                                className="text-white/20 hover:text-white transition-colors p-2"
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <span className={cn(
+                                                    "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                                                    statusInfo.bg,
+                                                    statusInfo.color,
+                                                    statusInfo.border
+                                                )}>
+                                                    {log.status}
+                                                </span>
+                                                <div className="flex items-center text-white/20 gap-2 text-[10px] font-bold uppercase tracking-widest">
+                                                    <Calendar className="w-3 h-3" />
+                                                    {formatDate(log.created_at)}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+                                                <h3 className="text-xl font-bold text-white truncate max-w-md">
+                                                    {extractRepoName(log.github_repo_url)}
+                                                </h3>
+                                                <div className="hidden md:flex items-center text-white/10">
+                                                    <ArrowRightLeft className="w-4 h-4" />
+                                                </div>
+                                                <p className="text-white/30 text-xs font-medium truncate flex items-center gap-2">
+                                                    {extractRepoName(log.gitee_repo_url)}
+                                                    <ExternalLink className="w-3 h-3" />
+                                                </p>
+                                            </div>
+
+                                            {log.error_message && (
+                                                <div className="mt-4 p-4 bg-rose-500/5 border border-rose-500/10 rounded-xl">
+                                                    <p className="text-rose-400/80 text-[11px] font-medium leading-relaxed italic">
+                                                        "{log.error_message}"
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center gap-4 lg:ml-auto">
+                                            <a
+                                                href={log.github_repo_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="p-3 bg-white/5 rounded-xl border border-white/5 text-white/40 hover:text-white hover:bg-white/10 transition-all"
                                             >
-                                                <GitBranch className="w-4 h-4" />
-                                            </button>
+                                                <ChevronRight className="w-5 h-5" />
+                                            </a>
                                         </div>
                                     </div>
 
-                                    {/* Subtle Gradient Backlight */}
+                                    {/* Accent gradient background */}
                                     <div className={cn(
-                                        "absolute top-0 right-0 w-64 h-64 blur-[80px] -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-20 transition-opacity pointer-events-none rounded-full",
+                                        "absolute top-0 right-0 w-64 h-64 blur-[100px] -translate-y-1/2 translate-x-1/2 rounded-full opacity-0 group-hover:opacity-10 transition-opacity duration-500",
                                         log.status === 'completed' ? "bg-emerald-500" : log.status === 'failed' ? "bg-rose-500" : "bg-blue-500"
                                     )} />
                                 </motion.div>
                             );
                         })}
-                    </AnimatePresence>
-                </motion.div>
-            )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

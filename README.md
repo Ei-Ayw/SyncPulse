@@ -1,39 +1,39 @@
 <p align="center">
-  <img src="assets/logo.png" width="120" alt="SyncHub Logo" />
+  <img src="assets/logo.png" width="120" alt="SyncPulse Logo" />
 </p>
 
-<h1 align="center">SyncHub</h1>
+<h1 align="center">SyncPulse</h1>
 
 <p align="center">
   <strong>一键将 GitHub 仓库镜像同步至 Gitee | Mirror GitHub Repositories to Gitee with One Click</strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/your-username/githubtodo/stargazers"><img src="https://img.shields.io/github/stars/your-username/githubtodo?style=for-the-badge&color=yellow" alt="stars" /></a>
-  <a href="https://github.com/your-username/githubtodo/network/members"><img src="https://img.shields.io/github/forks/your-username/githubtodo?style=for-the-badge&color=blue" alt="forks" /></a>
-  <a href="https://github.com/your-username/githubtodo/blob/main/LICENSE"><img src="https://img.shields.io/github/license/your-username/githubtodo?style=for-the-badge&color=green" alt="license" /></a>
+  <a href="https://github.com/Ei-Ayw/SyncPulse/stargazers"><img src="https://img.shields.io/github/stars/Ei-Ayw/SyncPulse?style=for-the-badge&color=yellow" alt="stars" /></a>
+  <a href="https://github.com/Ei-Ayw/SyncPulse/network/members"><img src="https://img.shields.io/github/forks/Ei-Ayw/SyncPulse?style=for-the-badge&color=blue" alt="forks" /></a>
+  <a href="https://github.com/Ei-Ayw/SyncPulse/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Ei-Ayw/SyncPulse?style=for-the-badge&color=green" alt="license" /></a>
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge" alt="PRs welcome" />
 </p>
 
 <p align="center">
-  <img src="assets/mockup.png" width="800" alt="SyncHub Mockup" />
+  <img src="assets/mockup.png" width="800" alt="SyncPulse Mockup" />
 </p>
 
 ---
 
 ## 📖 简介 / Introduction
 
-**SyncHub** 是一款专为开发者设计的自动化仓库同步平台。它致力于解决 GitHub 访问不稳定或需要国内备份的痛点，通过优雅的 UI 和强大的异步任务流，让您的代码在 GitHub 与 Gitee 之间自由流动。
+**SyncPulse** 是一款专为开发者设计的自动化仓库同步平台。它致力于解决 GitHub 访问不稳定或需要国内备份的痛点，通过优雅的 UI 和强大的异步任务流，让您的代码在 GitHub 与 Gitee 之间自由流动。
 
-**SyncHub** is an automated repository synchronization platform designed for developers. It addresses the pain points of unstable GitHub access or the need for domestic backups. With an elegant UI and robust asynchronous task flows, it keeps your code flowing seamlessly between GitHub and Gitee.
+**SyncPulse** is an automated repository synchronization platform designed for developers. It addresses the pain points of unstable GitHub access or the need for domestic backups. With an elegant UI and robust asynchronous task flows, it keeps your code flowing seamlessly between GitHub and Gitee.
 
 ---
 
 ## ✨ 主要功能 / Key Features
 
 - 🔄 **全量镜像同步 (Mirror Sync)**: 采用 `git clone --mirror` 技术，完整克隆所有分支、标签 (Tags) 和提交历史。
-- 🔑 **OAuth 2.0 联动**: 支持 GitHub 和 Gitee 的标准 OAuth 登录，安全高效地管理您的仓库权限。
-- 🏗️ **自动初始化仓库**: 如果 Gitee 目标仓库不存在，SyncHub 将利用 API 为您自动创建并配置。
+- 🔑 **OAuth 2.0 联动**: 支持 GitHub 和 Gitee 的 standard OAuth 登录，安全高效地管理您的仓库权限。
+- 🏗️ **自动初始化仓库**: 如果 Gitee 目标仓库不存在，SyncPulse 将利用 API 为您自动创建并配置。
 - 📊 **实时监控面板**: 苹果风格 (Glassmorphism) 的 UI 设计，集成 GitHub 风格的同步活跃度热力图。
 - ⚡ **高性能异步处理**: 基于 Celery + Redis，处理大规模仓库搬家时不会阻塞页面，且支持失败重试。
 

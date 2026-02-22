@@ -74,7 +74,7 @@ export default function Repositories() {
     const fetchRepos = async (isRefresh: boolean = false) => {
         try {
             setLoading(true);
-            const res = await axios.get(`http://localhost:8000/api/v1/sync/github/repos/${userId}`, {
+            const res = await axios.get(`http://localhost:8001/api/v1/sync/github/repos/${userId}`, {
                 params: { refresh: isRefresh }
             });
             setRepos(res.data);
@@ -87,7 +87,7 @@ export default function Repositories() {
 
     const fetchDashboard = async () => {
         try {
-            const res = await axios.get(`http://localhost:8000/api/v1/sync/dashboard/${userId}`);
+            const res = await axios.get(`http://localhost:8001/api/v1/sync/dashboard/${userId}`);
             setStats(res.data.stats);
             setHeatmapData(res.data.heatmapData);
         } catch (err) {
@@ -98,7 +98,7 @@ export default function Repositories() {
     const handleSync = async (repoUrl: string) => {
         try {
             setSyncingRepo(repoUrl);
-            await axios.post('http://localhost:8000/api/v1/sync/trigger', {
+            await axios.post(`http://localhost:8001/api/v1/sync/trigger`, {
                 user_id: userId,
                 github_repo_url: repoUrl
             });

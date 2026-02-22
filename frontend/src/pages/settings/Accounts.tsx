@@ -23,7 +23,7 @@ export default function Accounts() {
 
     const checkStatus = async () => {
         try {
-            const res = await axios.get(`http://localhost:8000/api/v1/auth/status/${userId}`);
+            const res = await axios.get(`http://localhost:8001/api/v1/auth/status/${userId}`);
             setLinked(
                 res.data.github_linked,
                 res.data.gitee_linked,
@@ -38,7 +38,7 @@ export default function Accounts() {
     const handleUnlink = async (platform: 'github' | 'gitee') => {
         try {
             setLoading(true);
-            await axios.delete(`http://localhost:8000/api/v1/auth/unlink/${userId}/${platform}`);
+            await axios.delete(`http://localhost:8001/api/v1/auth/unlink/${userId}/${platform}`);
             await checkStatus();
         } catch (e) {
             console.error(e);
@@ -121,7 +121,7 @@ export default function Accounts() {
                             <motion.a
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                href={`http://localhost:8000/api/v1/auth/oauth/github/login?user_id=${userId}`}
+                                href={`http://localhost:8001/api/v1/auth/oauth/github/login?user_id=${userId}`}
                                 className="mt-12 w-full px-6 py-4 bg-white text-slate-900 font-black text-xs rounded-2xl shadow-[0_0_30px_rgba(255,255,255,0.1)] hover:shadow-[0_0_40px_rgba(255,255,255,0.2)] hover:scale-[1.02] transition-all flex items-center justify-center gap-3 uppercase tracking-widest"
                             >
                                 <Github className="w-4 h-4" />
@@ -189,7 +189,7 @@ export default function Accounts() {
                             <motion.a
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                href={`http://localhost:8000/api/v1/auth/oauth/gitee/login?user_id=${userId}`}
+                                href={`http://localhost:8001/api/v1/auth/oauth/gitee/login?user_id=${userId}`}
                                 className="mt-12 w-full px-6 py-4 bg-[#c71d23] text-white font-black text-xs rounded-2xl shadow-[0_0_30px_rgba(199,29,35,0.2)] hover:shadow-[0_0_40px_rgba(199,29,35,0.3)] hover:scale-[1.02] transition-all flex items-center justify-center gap-3 uppercase tracking-widest"
                             >
                                 <GiteeIcon className="w-4 h-4" />

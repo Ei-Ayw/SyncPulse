@@ -29,3 +29,8 @@ app.include_router(api_router, prefix="/api/v1")
 @app.get("/health")
 def health_check():
     return {"status": "ok", "message": "Service is running."}
+
+@app.get("/ping")
+def ping():
+    print("🔔 [DEBUG] Ping hit!")
+    return {"message": "pong"}

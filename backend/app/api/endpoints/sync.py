@@ -13,6 +13,7 @@ router = APIRouter()
 
 @router.get("/github/repos/{user_id}", response_model=list[RepoInfo])
 def list_github_repos(user_id: int, refresh: bool = False, db: Session = Depends(get_db), redis = Depends(get_redis)):
+    print(f"🚀 [DEBUG] API Hit: list_github_repos for user {user_id} (refresh={refresh})")
     cache_key = f"user:{user_id}:github_repos"
     
     if not refresh:
@@ -30,7 +31,12 @@ def list_github_repos(user_id: int, refresh: bool = False, db: Session = Depends
         "X-GitHub-Api-Version": "2022-11-28"
     }
     
-    response = requests.get("https://api.github.com/user/repos", headers=headers, params={"visibility": "all", "per_page": 100})
+    response = requests.get(
+        "https://api.github.com/user/repos", 
+        headers=headers, 
+        params={"visibility": "all", "per_page": 100},
+        timeout=10
+    )
     
     if response.status_code != 200:
         raise HTTPException(status_code=response.status_code, detail="Failed to fetch repositories from GitHub")
@@ -84,6 +90,7 @@ def list_github_repos(user_id: int, refresh: bool = False, db: Session = Depends
 
 @router.post("/trigger", response_model=SyncResponse)
 def trigger_sync(req: SyncRequest, db: Session = Depends(get_db)):
+    print(f"🔥 [DEBUG] API Hit: trigger_sync for repo {req.github_repo_url}")
     user = db.query(User).filter(User.id == req.user_id).first()
     if not user or not user.github_access_token or not user.gitee_access_token:
         raise HTTPException(status_code=400, detail="Both GitHub and Gitee accounts must be linked")

@@ -15,9 +15,18 @@ def get_sync_logs(
     offset: int = 0,
     db: Session = Depends(get_db)
 ):
-    query = db.query(RepositorySyncTask).filter(RepositorySyncTask.user_id == user_id)
-    if status:
-        query = query.filter(RepositorySyncTask.status == status)
-    
-    tasks = query.order_by(RepositorySyncTask.created_at.desc()).offset(offset).limit(limit).all()
-    return tasks
+    print(f"📋 [DEBUG] API Hit: get_sync_logs for user {user_id} (status={status})")
+    try:
+        print(f"📋 [DEBUG] Starting DB query for user_id={user_id}")
+        query = db.query(RepositorySyncTask).filter(RepositorySyncTask.user_id == user_id)
+        if status:
+            query = query.filter(RepositorySyncTask.status == status)
+        
+        tasks = query.order_by(RepositorySyncTask.created_at.desc()).offset(offset).limit(limit).all()
+        print(f"📋 [DEBUG] DB query finished. Found {len(tasks)} tasks.")
+        return tasks
+    except Exception as e:
+        print(f"❌ [DEBUG] Error in get_sync_logs: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
