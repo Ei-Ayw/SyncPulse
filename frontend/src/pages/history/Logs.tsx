@@ -17,8 +17,8 @@ import { cn } from '../../lib/utils';
 
 interface SyncLog {
     id: number;
-    github_repo_url: str;
-    gitee_repo_url: str;
+    github_repo_url: string;
+    gitee_repo_url: string;
     status: 'completed' | 'failed' | 'syncing' | 'pending';
     error_message: string | null;
     created_at: string;
@@ -39,7 +39,8 @@ export default function SyncLogs() {
             setLoading(true);
             const queryParam = statusFilter !== 'all' ? `?status=${statusFilter}` : '';
             const res = await axios.get(`http://localhost:8001/api/v1/logs/${userId}${queryParam}`);
-            setLogs(res.data);
+            console.log("Raw logs response type:", typeof res.data, "IsArray:", Array.isArray(res.data), res.data);
+            setLogs(Array.isArray(res.data) ? res.data : []);
         } catch (error) {
             console.error("Failed to fetch sync logs", error);
         } finally {
@@ -56,23 +57,32 @@ export default function SyncLogs() {
         }
     };
 
-    const extractRepoName = (url: string) => {
+    const extractRepoName = (url: string | null | undefined) => {
+        if (!url || typeof url !== 'string') return "Unknown Repository";
         try {
-            return url.split('/').slice(-1)[0].replace('.git', '');
+            const parts = url.split('/');
+            const lastPart = parts[parts.length - 1];
+            return lastPart ? lastPart.replace('.git', '') : "Unknown Repository";
         } catch (e) {
             return url;
         }
     };
 
-    const formatDate = (dateStr: string) => {
-        const date = new Date(dateStr);
-        return new Intl.DateTimeFormat('en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        }).format(date);
+    const formatDate = (dateStr: string | null | undefined) => {
+        if (!dateStr) return "Unknown Date";
+        try {
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return "Invalid Date";
+            return new Intl.DateTimeFormat('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            }).format(date);
+        } catch (e) {
+            return "Unknown Date";
+        }
     };
 
     const containerVariants = {
@@ -114,6 +124,7 @@ export default function SyncLogs() {
             <AnimatePresence mode="wait">
                 {loading ? (
                     <motion.div
+                        key="loading"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -130,8 +141,10 @@ export default function SyncLogs() {
                     </motion.div>
                 ) : logs.length === 0 ? (
                     <motion.div
+                        key="empty"
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
                         className="flex flex-col items-center justify-center h-80 bg-white/5 border border-white/5 rounded-[3rem] text-center p-12"
                     >
                         <div className="w-16 h-16 bg-white/5 rounded-3xl flex items-center justify-center mb-6">
@@ -142,9 +155,11 @@ export default function SyncLogs() {
                     </motion.div>
                 ) : (
                     <motion.div
+                        key="list"
                         variants={containerVariants}
                         initial="hidden"
                         animate="visible"
+                        exit={{ opacity: 0 }}
                         className="space-y-4"
                     >
                         {logs.map((log) => {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
-import { Github, CheckCircle2, ShieldCheck, Link2 } from 'lucide-react';
+import { Github, CheckCircle2, ShieldCheck, Link2, Copy, Webhook } from 'lucide-react';
 import { motion, type Variants } from 'framer-motion';
 import { cn } from '../../lib/utils';
 
@@ -16,6 +16,13 @@ const GiteeIcon = ({ className }: { className?: string }) => (
 export default function Accounts() {
     const { userId, githubLinked, giteeLinked, githubUser, giteeUser, setLinked } = useAuthStore();
     const [loading, setLoading] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    const handleCopyWebhook = () => {
+        navigator.clipboard.writeText(`http://localhost:8001/api/v1/webhook/github/${userId}`);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
 
     useEffect(() => {
         checkStatus();
@@ -207,12 +214,52 @@ export default function Accounts() {
                 </motion.div>
             </div>
 
+            {githubLinked && giteeLinked && (
+                <motion.div
+                    custom={3}
+                    initial="hidden"
+                    animate="visible"
+                    variants={variants}
+                    className="mt-8 bg-[#0f0f12]/80 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-10 relative overflow-hidden group"
+                >
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[100px] -translate-y-1/2 translate-x-1/2 rounded-full pointer-events-none" />
+
+                    <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
+                        <div className="p-5 bg-white/5 rounded-3xl border border-white/10 shadow-inner">
+                            <Webhook className="w-8 h-8 text-emerald-400" />
+                        </div>
+
+                        <div className="flex-1 w-full overflow-hidden">
+                            <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">Webhook Integration</h3>
+                            <p className="text-sm text-white/60 leading-relaxed mb-6">
+                                Automate your sync process by adding this webhook URL to your GitHub repositories. It triggers an instant sync to Gitee whenever code is pushed.
+                            </p>
+
+                            <div className="flex items-center gap-3 bg-[#0a0a0c] border border-white/5 p-2 pl-4 rounded-2xl w-full">
+                                <div className="flex-1 overflow-x-auto scrollbar-hide">
+                                    <code className="text-xs text-blue-300 font-mono whitespace-nowrap">
+                                        http://localhost:8001/api/v1/webhook/github/{userId}
+                                    </code>
+                                </div>
+                                <button
+                                    onClick={handleCopyWebhook}
+                                    className="px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-colors flex items-center gap-2 font-bold text-[10px] uppercase tracking-widest shrink-0"
+                                >
+                                    {copied ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                                    {copied ? 'Copied' : 'Copy'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
+            )}
+
             <motion.div
-                custom={3}
+                custom={4}
                 initial="hidden"
                 animate="visible"
                 variants={variants}
-                className="mt-12 bg-white/5 border border-white/5 rounded-[2.5rem] p-8 flex items-center gap-6"
+                className="mt-8 bg-white/5 border border-white/5 rounded-[2.5rem] p-8 flex items-center gap-6"
             >
                 <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white/20">
                     <ShieldCheck className="w-6 h-6" />

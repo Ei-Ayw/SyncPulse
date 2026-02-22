@@ -19,3 +19,10 @@ class SyncResponse(BaseModel):
     task_id: int
     status: str
     message: str
+
+class BulkSyncRequest(BaseModel):
+    user_id: int
+
+class BulkSyncResponse(BaseModel):
+    message: str
+    task_count: int

@@ -31,11 +31,14 @@
 
 ## ✨ 主要功能 / Key Features
 
-- 🔄 **全量镜像同步 (Mirror Sync)**: 采用 `git clone --mirror` 技术，完整克隆所有分支、标签 (Tags) 和提交历史。
-- 🔑 **OAuth 2.0 联动**: 支持 GitHub 和 Gitee 的 standard OAuth 登录，安全高效地管理您的仓库权限。
+- 🔄 **智能镜像同步 (Smart Mirror Sync)**: 优先 `git push --mirror` 完整同步；遇到隐藏引用被拒绝时，自动回退至 `--all + --tags` 模式，确保同步成功。
+- 🚀 **一键搬家 (Bulk Sync)**: 一键将你所有 GitHub 仓库批量同步至 Gitee，告别逐个手动操作。
+- 🔑 **OAuth 2.0 联动**: 支持 GitHub 和 Gitee 的标准 OAuth 登录，安全高效地管理您的仓库权限。
 - 🏗️ **自动初始化仓库**: 如果 Gitee 目标仓库不存在，SyncPulse 将利用 API 为您自动创建并配置。
-- 📊 **实时监控面板**: 苹果风格 (Glassmorphism) 的 UI 设计，集成 GitHub 风格的同步活跃度热力图。
-- ⚡ **高性能异步处理**: 基于 Celery + Redis，处理大规模仓库搬家时不会阻塞页面，且支持失败重试。
+- 📊 **实时监控面板**: 暗黑系 Glassmorphism UI 设计，集成 GitHub 风格的同步活跃度热力图和完整的同步历史日志。
+- ⚡ **高性能异步处理**: 基于 Celery + Redis，处理大规模仓库搬家时不会阻塞页面。
+- ⏰ **定时自动同步 (Cron Jobs)**: 通过 Celery Beat 配置每日自动同步全部仓库，无需人工干预。
+- 🪝 **Webhook 触发同步**: 配置 GitHub Webhook 后，每次 `push` 事件自动触发对应仓库的同步。
 
 ---
 
@@ -67,26 +70,27 @@ Create a `.env` file in the `backend/` directory based on `.env.example` and fil
 
 ### 3. 启动项目 / Run Locally
 
+> ⚠️ **Windows 用户注意**: Celery Worker 和 Beat 必须在**不同的终端窗口**中分别启动，不能合并为一条命令。
+
 **后端 / Backend:**
 ```bash
 cd backend
-python -m uvicorn app.main:app --reload
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
 ```
 
-**启动任务工人 / Worker:**
+**启动任务工人 / Worker (终端 2):**
 ```bash
 cd backend
 python -m celery -A app.worker.celery_app worker --loglevel=info --pool=solo
 ```
 
-**启动定时任务 / Beat Scheduler:**
-*(需要在新的终端窗口中运行 / Run in a new terminal)*
+**启动定时任务 / Beat Scheduler (终端 3):**
 ```bash
 cd backend
 python -m celery -A app.worker.celery_app beat --loglevel=info
 ```
 
-**前端 / Frontend:**
+**前端 / Frontend (终端 4):**
 ```bash
 cd frontend
 npm install
@@ -97,11 +101,15 @@ npm run dev
 
 ## 🗺️ 路线图 / Roadmap
 
-- [ ] 支持同步全量 Repositories (一键搬家)
-- [ ] 定时自动同步任务 (Cron Jobs)
-- [ ] Webhook 触发同步
+- [x] 支持同步全量 Repositories (一键搬家)
+- [x] 定时自动同步任务 (Cron Jobs / Celery Beat)
+- [x] Webhook 触发同步
+- [x] 智能推送回退 (`--mirror` → `--all`)
+- [x] 同步历史日志 (Sync History)
+- [ ] Webhook 签名验证 (Signature Verification)
 - [ ] 飞书/钉钉 同步成功通知
 - [ ] 支持更多的 Git 平台 (GitLab, Bitbucket)
+- [ ] 用户级别的定时同步配置
 
 ---
 

@@ -62,6 +62,8 @@ export default function Repositories() {
     const [repos, setRepos] = useState<Repo[]>([]);
     const [loading, setLoading] = useState(false);
     const [syncingRepo, setSyncingRepo] = useState<string | null>(null);
+    const [isBulkSyncing, setIsBulkSyncing] = useState(false);
+    const [showBulkSyncModal, setShowBulkSyncModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [stats, setStats] = useState({ total: 0, active: 0, failed: 0 });
     const [heatmapData, setHeatmapData] = useState<number[]>([]);
@@ -114,6 +116,32 @@ export default function Repositories() {
         }
     };
 
+    const handleBulkSync = async () => {
+        try {
+            setIsBulkSyncing(true);
+            setShowBulkSyncModal(false);
+            await axios.post(`http://localhost:8001/api/v1/sync/trigger/all`, {
+                user_id: userId
+            });
+            // Update local state for immediate feedback
+            setRepos(repos.map(r => ({ ...r, sync_status: repoStatusWaitList(r, 'pending') })));
+
+            setTimeout(() => {
+                fetchRepos();
+                fetchDashboard();
+                setIsBulkSyncing(false);
+            }, 3000);
+        } catch (error) {
+            console.error("Failed to trigger bulk sync", error);
+            setIsBulkSyncing(false);
+        }
+    };
+
+    const repoStatusWaitList = (r: Repo, status: string) => {
+        if (r.sync_status === 'completed' || r.sync_status === 'failed' || r.sync_status === 'syncing') return r.sync_status;
+        return status as 'pending' | 'syncing' | 'completed' | 'failed' | null;
+    }
+
     const filteredRepos = repos.filter(repo =>
         repo.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (repo.description && repo.description.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -144,6 +172,15 @@ export default function Repositories() {
                 </div>
 
                 <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => setShowBulkSyncModal(true)}
+                        disabled={loading || isBulkSyncing || repos.length === 0}
+                        className={cn("px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl transition-all shadow-lg flex items-center gap-2", (isBulkSyncing || repos.length === 0) && "opacity-50")}
+                    >
+                        <RefreshCw className={cn("w-4 h-4", isBulkSyncing && "animate-spin")} />
+                        <span className="text-sm">Sync All</span>
+                    </button>
+
                     <button
                         onClick={() => { fetchRepos(true); fetchDashboard(); }}
                         disabled={loading}
@@ -306,6 +343,38 @@ export default function Repositories() {
                     </div>
                 </div>
             )}
+
+            <AnimatePresence>
+                {showBulkSyncModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-[#0f0f12] border border-white/10 p-8 rounded-[2.5rem] max-w-md w-full shadow-2xl"
+                        >
+                            <h3 className="text-2xl font-bold text-white mb-4">Sync All Repositories?</h3>
+                            <p className="text-white/60 mb-8 leading-relaxed">
+                                This will queue all your {repos.length} GitHub repositories for synchronization to Gitee. Depending on the amount of repositories, this might take some time.
+                            </p>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => setShowBulkSyncModal(false)}
+                                    className="px-5 py-2.5 rounded-xl font-bold text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleBulkSync}
+                                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-all"
+                                >
+                                    Confirm Sync
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.user import User, RepositorySyncTask
-from app.schemas.sync import RepoInfo, SyncRequest, SyncResponse
+from app.schemas.sync import RepoInfo, SyncRequest, SyncResponse, BulkSyncRequest, BulkSyncResponse
 from app.worker.tasks import sync_repository
 import requests
 
@@ -128,6 +128,70 @@ def trigger_sync(req: SyncRequest, db: Session = Depends(get_db)):
         task_id=task_record.id,
         status="queued",
         message="Sync task has been added to the queue"
+    )
+
+@router.post("/trigger/all", response_model=BulkSyncResponse)
+def trigger_sync_all(req: BulkSyncRequest, db: Session = Depends(get_db)):
+    print(f"🔥 [DEBUG] API Hit: trigger_sync_all for user {req.user_id}")
+    user = db.query(User).filter(User.id == req.user_id).first()
+    if not user or not user.github_access_token or not user.gitee_access_token:
+        raise HTTPException(status_code=400, detail="Both GitHub and Gitee accounts must be linked")
+        
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {user.github_access_token}",
+        "X-GitHub-Api-Version": "2022-11-28"
+    }
+    
+    response = requests.get(
+        "https://api.github.com/user/repos", 
+        headers=headers, 
+        params={"visibility": "all", "per_page": 100},
+        timeout=10
+    )
+    
+    if response.status_code != 200:
+        raise HTTPException(status_code=response.status_code, detail="Failed to fetch repositories from GitHub")
+        
+    repos = response.json()
+    task_count = 0
+    
+    for r in repos:
+        github_repo_url = r["clone_url"]
+        repo_name = r["name"]
+        
+        # Check if a pending or syncing task already exists
+        existing_task = db.query(RepositorySyncTask).filter(
+            RepositorySyncTask.user_id == user.id,
+            RepositorySyncTask.github_repo_url == github_repo_url,
+            RepositorySyncTask.status.in_(["pending", "syncing"])
+        ).first()
+        
+        if existing_task:
+            continue
+            
+        task_record = RepositorySyncTask(
+            user_id=user.id,
+            github_repo_url=github_repo_url,
+            gitee_repo_url=f"https://gitee.com/{user.gitee_username}/{repo_name}.git",
+            status="pending"
+        )
+        db.add(task_record)
+        db.commit()
+        db.refresh(task_record)
+        
+        sync_repository.delay(
+            task_id=task_record.id,
+            github_repo_url=task_record.github_repo_url,
+            gitee_repo_url=task_record.gitee_repo_url,
+            github_pat=user.github_access_token,
+            gitee_pat=user.gitee_access_token
+        )
+        task_count += 1
+        
+    return BulkSyncResponse(
+        message="Bulk sync triggered successfully",
+        task_count=task_count
     )
 
 @router.get("/dashboard/{user_id}")
