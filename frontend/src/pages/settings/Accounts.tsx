@@ -1,8 +1,17 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
-import { Github, CheckCircle2 } from 'lucide-react';
+import { Github, CheckCircle2, ShieldCheck, Link2 } from 'lucide-react';
 import { motion, type Variants } from 'framer-motion';
+import { cn } from '../../lib/utils';
+
+const GiteeIcon = ({ className }: { className?: string }) => (
+    <div className={cn("bg-[#c71d23] rounded-[4px] flex items-center justify-center p-0.5", className)}>
+        <svg viewBox="0 0 24 24" className="w-full h-full text-white fill-current">
+            <path d="M11.977 24c6.626 0 11.998-5.372 11.998-12S18.604 0 11.977 0C5.352 0 .002 5.372.002 12s5.35 12 11.975 12zM6.166 6.848h11.621v2.105H8.381v2.105h9.406v2.105H8.381v2.105h9.406v2.105H6.166V6.848z" />
+        </svg>
+    </div>
+);
 
 export default function Accounts() {
     const { userId, githubLinked, giteeLinked, githubUser, giteeUser, setLinked } = useAuthStore();
@@ -48,116 +57,172 @@ export default function Accounts() {
     };
 
     return (
-        <div className="max-w-4xl mx-auto space-y-10 pb-16">
-            <motion.header custom={0} initial="hidden" animate="visible" variants={variants} className="mb-10 px-2">
-                <h1 className="text-[2.5rem] font-bold tracking-tight text-slate-900 leading-tight">Accounts</h1>
-                <p className="text-lg text-slate-500 mt-2 font-medium">Manage your connected version control platforms.</p>
+        <div className="max-w-5xl mx-auto pb-16">
+            <motion.header
+                custom={0}
+                initial="hidden"
+                animate="visible"
+                variants={variants}
+                className="mb-12 px-2"
+            >
+                <h1 className="text-4xl font-bold tracking-tight text-white mb-2 leading-tight">Connected Accounts</h1>
+                <p className="text-white/40 font-medium font-bold uppercase tracking-widest text-[10px]">Manage your version control credentials</p>
             </motion.header>
 
-            <motion.div custom={1} initial="hidden" animate="visible" variants={variants} className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/40 border border-slate-100/60 overflow-hidden divide-y divide-slate-100">
-
-                {/* GitHub Linked Section */}
-                <div className="p-8 sm:p-10 transition-colors duration-300 hover:bg-slate-50/30">
-                    <div className="flex items-start justify-between">
-                        <div className="flex items-center space-x-6">
-                            <div className="p-4 bg-slate-50 rounded-[1.25rem] shadow-sm border border-slate-100">
-                                <Github className="w-8 h-8 text-slate-800" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* GitHub Section */}
+                <motion.div
+                    custom={1}
+                    initial="hidden"
+                    animate="visible"
+                    variants={variants}
+                    className="relative group bg-[#0f0f12]/80 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-10 hover:bg-[#141417] hover:border-white/10 transition-all duration-500 overflow-hidden"
+                >
+                    <div className="flex flex-col h-full relative z-10">
+                        <div className="flex items-start justify-between mb-10">
+                            <div className="p-5 bg-white/5 rounded-3xl border border-white/10 shadow-inner group-hover:scale-110 transition-transform">
+                                <Github className="w-8 h-8 text-white" />
                             </div>
-                            <div>
-                                <h3 className="text-2xl font-bold text-slate-900 flex items-center tracking-tight">
-                                    GitHub
-                                    {githubLinked && <CheckCircle2 className="w-[22px] h-[22px] ml-3 text-emerald-500" strokeWidth={2.5} />}
-                                </h3>
-                                <p className="text-base text-slate-500 mt-1.5 font-medium">
-                                    {githubLinked && githubUser ? (
-                                        <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-                                            Connected as <strong>{githubUser}</strong>
-                                        </span>
-                                    ) : (
-                                        "Source repositories platform"
-                                    )}
-                                </p>
-                            </div>
+                            {githubLinked ? (
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => handleUnlink('github')}
+                                    className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-rose-500/80 bg-rose-500/10 border border-rose-500/20 rounded-xl hover:bg-rose-500/20 transition-all"
+                                    disabled={loading}
+                                >
+                                    Unlink
+                                </motion.button>
+                            ) : (
+                                <div className="p-3 bg-white/5 rounded-2xl flex items-center justify-center">
+                                    <Link2 className="w-5 h-5 text-white/20" />
+                                </div>
+                            )}
                         </div>
-                        {githubLinked ? (
-                            <motion.button
-                                whileHover={{ scale: 1.02, backgroundColor: "#fee2e2" }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => handleUnlink('github')}
-                                className="px-5 py-2.5 text-sm font-bold text-rose-600 bg-rose-50 rounded-xl transition-colors"
-                                disabled={loading}
-                            >
-                                Disconnect
-                            </motion.button>
-                        ) : null}
-                    </div>
 
-                    {!githubLinked && (
-                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-8 flex flex-col space-y-4 ml-[5.5rem] items-start">
-                            <a
+                        <div className="mb-auto">
+                            <h3 className="text-2xl font-bold text-white mb-2 flex items-center tracking-tight">
+                                GitHub
+                                {githubLinked && <CheckCircle2 className="w-5 h-5 ml-3 text-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]" />}
+                            </h3>
+                            <p className="text-sm font-medium leading-relaxed">
+                                {githubLinked && githubUser ? (
+                                    <span className="text-emerald-400/80 flex items-center gap-2">
+                                        <ShieldCheck className="w-4 h-4" />
+                                        Authenticated as <strong className="text-emerald-400">{githubUser}</strong>
+                                    </span>
+                                ) : (
+                                    <span className="text-white/30 uppercase tracking-widest text-[10px] font-bold">Primary storage provider</span>
+                                )}
+                            </p>
+                        </div>
+
+                        {!githubLinked ? (
+                            <motion.a
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
                                 href={`http://localhost:8000/api/v1/auth/oauth/github/login?user_id=${userId}`}
-                                className="px-6 py-3.5 bg-slate-900 text-white font-bold text-base rounded-2xl shadow-lg shadow-slate-900/20 hover:shadow-xl hover:shadow-slate-900/30 transition-all flex items-center gap-3"
+                                className="mt-12 w-full px-6 py-4 bg-white text-slate-900 font-black text-xs rounded-2xl shadow-[0_0_30px_rgba(255,255,255,0.1)] hover:shadow-[0_0_40px_rgba(255,255,255,0.2)] hover:scale-[1.02] transition-all flex items-center justify-center gap-3 uppercase tracking-widest"
                             >
-                                <Github className="w-5 h-5" />
-                                <span className="pr-2">Authorize with GitHub OAuth</span>
-                            </a>
-                        </motion.div>
-                    )}
-                </div>
-
-                {/* Gitee Linked Section */}
-                <div className="p-8 sm:p-10 transition-colors duration-300 hover:bg-slate-50/30">
-                    <div className="flex items-start justify-between">
-                        <div className="flex items-center space-x-6">
-                            <div className="p-4 bg-red-50/80 rounded-[1.25rem] shadow-sm border border-red-100/50">
-                                <svg className="w-8 h-8 text-red-600" viewBox="0 0 1024 1024" fill="currentColor">
-                                    <path d="M512 1024C229.2 1024 0 794.8 0 512S229.2 0 512 0s512 229.2 512 512-229.2 512-512 512zm259.5-568.8H293v-95.2h478.5v95.2zm0 181.8H481.5v-92.7h290v92.7z"></path>
-                                </svg>
+                                <Github className="w-4 h-4" />
+                                <span>Authorize Account</span>
+                            </motion.a>
+                        ) : (
+                            <div className="mt-12 h-[52px] flex items-center justify-center border border-white/5 rounded-2xl text-[10px] font-bold text-white/10 uppercase tracking-widest">
+                                Connection Active
                             </div>
-                            <div>
-                                <h3 className="text-2xl font-bold text-slate-900 flex items-center tracking-tight">
-                                    Gitee
-                                    {giteeLinked && <CheckCircle2 className="w-[22px] h-[22px] ml-3 text-emerald-500" strokeWidth={2.5} />}
-                                </h3>
-                                <p className="text-base text-slate-500 mt-1.5 font-medium">
-                                    {giteeLinked && giteeUser ? (
-                                        <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-                                            Connected as <strong>{giteeUser}</strong>
-                                        </span>
-                                    ) : (
-                                        "Destination repositories platform"
-                                    )}
-                                </p>
-                            </div>
-                        </div>
-                        {giteeLinked ? (
-                            <motion.button
-                                whileHover={{ scale: 1.02, backgroundColor: "#fee2e2" }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => handleUnlink('gitee')}
-                                className="px-5 py-2.5 text-sm font-bold text-rose-600 bg-rose-50 rounded-xl transition-colors"
-                                disabled={loading}
-                            >
-                                Disconnect
-                            </motion.button>
-                        ) : null}
+                        )}
                     </div>
 
-                    {!giteeLinked && (
-                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-8 flex flex-col space-y-4 ml-[5.5rem] items-start">
-                            <a
-                                href={`http://localhost:8000/api/v1/auth/oauth/gitee/login?user_id=${userId}`}
-                                className="px-6 py-3.5 bg-red-600 text-white font-bold text-base rounded-2xl shadow-lg shadow-red-600/20 hover:shadow-xl hover:shadow-red-600/30 hover:bg-red-500 transition-all flex items-center gap-3"
-                            >
-                                <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 1024 1024" fill="currentColor">
-                                    <path d="M512 1024C229.2 1024 0 794.8 0 512S229.2 0 512 0s512 229.2 512 512-229.2 512-512 512zm259.5-568.8H293v-95.2h478.5v95.2zm0 181.8H481.5v-92.7h290v92.7z"></path>
-                                </svg>
-                                <span className="pr-2">Authorize with Gitee OAuth</span>
-                            </a>
-                        </motion.div>
-                    )}
-                </div>
+                    {/* Background glow */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 blur-[100px] -translate-y-1/2 translate-x-1/2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                </motion.div>
 
+                {/* Gitee Section */}
+                <motion.div
+                    custom={2}
+                    initial="hidden"
+                    animate="visible"
+                    variants={variants}
+                    className="relative group bg-[#0f0f12]/80 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-10 hover:bg-[#141417] hover:border-white/10 transition-all duration-500 overflow-hidden"
+                >
+                    <div className="flex flex-col h-full relative z-10">
+                        <div className="flex items-start justify-between mb-10">
+                            <div className="p-5 bg-white/5 rounded-3xl border border-white/10 shadow-inner group-hover:scale-110 transition-transform">
+                                <GiteeIcon className="w-8 h-8" />
+                            </div>
+                            {giteeLinked ? (
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => handleUnlink('gitee')}
+                                    className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-rose-500/80 bg-rose-500/10 border border-rose-500/20 rounded-xl hover:bg-rose-500/20 transition-all"
+                                    disabled={loading}
+                                >
+                                    Unlink
+                                </motion.button>
+                            ) : (
+                                <div className="p-3 bg-white/5 rounded-2xl flex items-center justify-center">
+                                    <Link2 className="w-5 h-5 text-white/20" />
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mb-auto">
+                            <h3 className="text-2xl font-bold text-white mb-2 flex items-center tracking-tight">
+                                Gitee
+                                {giteeLinked && <CheckCircle2 className="w-5 h-5 ml-3 text-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]" />}
+                            </h3>
+                            <p className="text-sm font-medium leading-relaxed">
+                                {giteeLinked && giteeUser ? (
+                                    <span className="text-emerald-400/80 flex items-center gap-2">
+                                        <ShieldCheck className="w-4 h-4" />
+                                        Connected as <strong className="text-emerald-400">{giteeUser}</strong>
+                                    </span>
+                                ) : (
+                                    <span className="text-white/30 uppercase tracking-widest text-[10px] font-bold">Destination mirror provider</span>
+                                )}
+                            </p>
+                        </div>
+
+                        {!giteeLinked ? (
+                            <motion.a
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                href={`http://localhost:8000/api/v1/auth/oauth/gitee/login?user_id=${userId}`}
+                                className="mt-12 w-full px-6 py-4 bg-[#c71d23] text-white font-black text-xs rounded-2xl shadow-[0_0_30px_rgba(199,29,35,0.2)] hover:shadow-[0_0_40px_rgba(199,29,35,0.3)] hover:scale-[1.02] transition-all flex items-center justify-center gap-3 uppercase tracking-widest"
+                            >
+                                <GiteeIcon className="w-4 h-4" />
+                                <span>Authorize Account</span>
+                            </motion.a>
+                        ) : (
+                            <div className="mt-12 h-[52px] flex items-center justify-center border border-white/5 rounded-2xl text-[10px] font-bold text-white/10 uppercase tracking-widest">
+                                Connection Active
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Background glow */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#c71d23]/10 blur-[100px] -translate-y-1/2 translate-x-1/2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                </motion.div>
+            </div>
+
+            <motion.div
+                custom={3}
+                initial="hidden"
+                animate="visible"
+                variants={variants}
+                className="mt-12 bg-white/5 border border-white/5 rounded-[2.5rem] p-8 flex items-center gap-6"
+            >
+                <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white/20">
+                    <ShieldCheck className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                    <p className="text-sm font-bold text-white/80">Security Notice</p>
+                    <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest mt-1">
+                        Access tokens are encrypted and never exposed in the browser. You can revoke access at any time from your platform's settings.
+                    </p>
+                </div>
             </motion.div>
         </div>
     );
