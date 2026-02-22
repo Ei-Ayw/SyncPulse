@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <img src="assets/mockup.png" width="800" alt="SyncPulse Mockup" />
+  <img src="assets/demo.gif" width="800" alt="SyncPulse Demo" />
 </p>
 
 ---
