@@ -79,6 +79,13 @@ cd backend
 python -m celery -A app.worker.celery_app worker --loglevel=info --pool=solo
 ```
 
+**启动定时任务 / Beat Scheduler:**
+*(需要在新的终端窗口中运行 / Run in a new terminal)*
+```bash
+cd backend
+python -m celery -A app.worker.celery_app beat --loglevel=info
+```
+
 **前端 / Frontend:**
 ```bash
 cd frontend
