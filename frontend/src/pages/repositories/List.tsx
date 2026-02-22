@@ -40,6 +40,23 @@ const MiniHeatmap = ({ data }: { data?: number[] }) => (
     </div>
 );
 
+const RepoSkeleton = () => (
+    <div className="w-full p-8 rounded-[2.5rem] bg-[#0f0f12] border border-white/5 animate-pulse">
+        <div className="flex justify-between mb-6">
+            <div className="flex gap-2.5">
+                <div className="w-5 h-5 bg-white/5 rounded-full" />
+                <div className="w-4 h-4 bg-white/5 rounded-full" />
+            </div>
+            <div className="flex gap-4">
+                <div className="w-16 h-3 bg-white/5 rounded-full" />
+                <div className="w-12 h-3 bg-white/5 rounded-full" />
+            </div>
+        </div>
+        <div className="w-3/4 h-8 bg-white/5 rounded-xl mb-8" />
+        <div className="w-full h-1.5 bg-white/5 rounded-full" />
+    </div>
+);
+
 export default function Repositories() {
     const { userId } = useAuthStore();
     const [repos, setRepos] = useState<Repo[]>([]);
@@ -162,8 +179,13 @@ export default function Repositories() {
             </header>
 
             {loading && repos.length === 0 ? (
-                <div className="flex flex-col justify-center items-center h-64 space-y-4">
-                    <div className="w-12 h-12 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                <div className="flex gap-10">
+                    <div className="flex-1 space-y-6">
+                        {[...Array(3)].map((_, i) => <RepoSkeleton key={i} />)}
+                    </div>
+                    <div className="w-80 hidden lg:block">
+                        <div className="h-[400px] bg-[#0f0f12] border border-white/5 rounded-[2.5rem] animate-pulse" />
+                    </div>
                 </div>
             ) : (
                 <div className="flex gap-10">

@@ -37,16 +37,20 @@ def list_github_repos(user_id: int, refresh: bool = False, db: Session = Depends
         
     repos = response.json()
     
-    # Get all sync tasks for this user
-    sync_tasks = db.query(RepositorySyncTask).filter(RepositorySyncTask.user_id == user_id).all()
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    thirty_days_ago = now - timedelta(days=30)
+
+    # Get sync tasks for this user (only last 30 days for activity map)
+    sync_tasks = db.query(RepositorySyncTask).filter(
+        RepositorySyncTask.user_id == user_id,
+        RepositorySyncTask.created_at >= thirty_days_ago
+    ).all()
     
     # Pre-process tasks into maps for efficiency
     status_map = {}
     activity_map = {} # Maps repo_url -> list of 21 counters
-    
-    from datetime import datetime, timedelta, timezone
-    now = datetime.now(timezone.utc)
-    
+
     for task in sync_tasks:
         url = task.github_repo_url
         status_map[url] = task.status
@@ -124,51 +128,41 @@ def get_dashboard_stats(user_id: int, db: Session = Depends(get_db)):
     from sqlalchemy import func
     from datetime import datetime, timedelta, timezone
 
-    tasks = db.query(RepositorySyncTask).filter(RepositorySyncTask.user_id == user_id).all()
+    # 1. Efficient counts using DB-side aggregation
+    total = db.query(RepositorySyncTask).filter(RepositorySyncTask.user_id == user_id).count()
+    active = db.query(RepositorySyncTask).filter(RepositorySyncTask.user_id == user_id, RepositorySyncTask.status == "syncing").count()
+    queued = db.query(RepositorySyncTask).filter(RepositorySyncTask.user_id == user_id, RepositorySyncTask.status == "pending").count()
+    failed = db.query(RepositorySyncTask).filter(RepositorySyncTask.user_id == user_id, RepositorySyncTask.status == "failed").count()
     
-    total = len(tasks)
-    active = len([t for t in tasks if t.status == "syncing"])
-    queued = len([t for t in tasks if t.status == "pending"])
-    failed = len([t for t in tasks if t.status == "failed"])
-    
-    # Generate true heatmap data based on the last 120 days
+    # 2. Generate heatmap data only for the last 120 days
     days = 120
     heatmap_data = [0] * days
+    now = datetime.now(timezone.utc)
+    start_date = now - timedelta(days=days)
+
+    relevant_tasks = db.query(RepositorySyncTask.created_at).filter(
+        RepositorySyncTask.user_id == user_id,
+        RepositorySyncTask.created_at >= start_date
+    ).all()
     
-    # Fast path if no tasks
-    if total > 0:
-        now = datetime.now(timezone.utc)
-        
-        # Calculate daily counts
-        for task in tasks:
-            # Check if created_at is naive or aware, enforce timezone.utc comparison
-            created = task.created_at
-            if created.tzinfo is None:
-                created = created.replace(tzinfo=timezone.utc)
-                
-            delta = now - created
-            days_ago = delta.days
+    for (created_at,) in relevant_tasks:
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
             
-            # If the task falls within our 120 days window
-            if 0 <= days_ago < days:
-                # We want visually older days at the beginning of the array (index 0) 
-                # and recent days at the end of the array (index 119)
-                index = (days - 1) - days_ago
-                heatmap_data[index] += 1
+        delta = now - created_at
+        days_ago = delta.days
+        if 0 <= days_ago < days:
+            index = (days - 1) - days_ago
+            heatmap_data[index] += 1
                 
-        # Compress real counts to visual levels (0-4)
-        for i in range(days):
-            val = heatmap_data[i]
-            if val == 0:
-                heatmap_data[i] = 0
-            elif val <= 2:
-                heatmap_data[i] = 1
-            elif val <= 5:
-                heatmap_data[i] = 2
-            elif val <= 10:
-                heatmap_data[i] = 3
-            else:
-                heatmap_data[i] = 4
+    # 3. Compress counts to levels (0-4)
+    for i in range(days):
+        val = heatmap_data[i]
+        if val == 0: heatmap_data[i] = 0
+        elif val <= 2: heatmap_data[i] = 1
+        elif val <= 5: heatmap_data[i] = 2
+        elif val <= 10: heatmap_data[i] = 3
+        else: heatmap_data[i] = 4
 
     return {
         "stats": {
