@@ -6,10 +6,20 @@ from app.schemas.sync import RepoInfo, SyncRequest, SyncResponse
 from app.worker.tasks import sync_repository
 import requests
 
+from app.core.redis import get_redis
+import json
+
 router = APIRouter()
 
 @router.get("/github/repos/{user_id}", response_model=list[RepoInfo])
-def list_github_repos(user_id: int, db: Session = Depends(get_db)):
+def list_github_repos(user_id: int, refresh: bool = False, db: Session = Depends(get_db), redis = Depends(get_redis)):
+    cache_key = f"user:{user_id}:github_repos"
+    
+    if not refresh:
+        cached_data = redis.get(cache_key)
+        if cached_data:
+            return [RepoInfo(**item) for item in json.loads(cached_data)]
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user or not user.github_access_token:
         raise HTTPException(status_code=400, detail="GitHub account not linked")
@@ -62,6 +72,9 @@ def list_github_repos(user_id: int, db: Session = Depends(get_db)):
         info.sync_status = status_map.get(url)
         info.activity_data = activity_map.get(url, [0] * 21) # Default to 21 empty dots
         repo_list.append(info)
+        
+    # Cache the result for 30 minutes
+    redis.setex(cache_key, 1800, json.dumps([r.model_dump() for r in repo_list]))
         
     return repo_list
 

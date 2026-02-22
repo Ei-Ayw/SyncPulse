@@ -50,14 +50,16 @@ export default function Repositories() {
     const [heatmapData, setHeatmapData] = useState<number[]>([]);
 
     useEffect(() => {
-        fetchRepos();
+        fetchRepos(false);
         fetchDashboard();
     }, [userId]);
 
-    const fetchRepos = async () => {
+    const fetchRepos = async (isRefresh: boolean = false) => {
         try {
             setLoading(true);
-            const res = await axios.get(`http://localhost:8000/api/v1/sync/github/repos/${userId}`);
+            const res = await axios.get(`http://localhost:8000/api/v1/sync/github/repos/${userId}`, {
+                params: { refresh: isRefresh }
+            });
             setRepos(res.data);
         } catch (error) {
             console.error("Failed to fetch repositories", error);
@@ -125,6 +127,15 @@ export default function Repositories() {
                 </div>
 
                 <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => { fetchRepos(true); fetchDashboard(); }}
+                        disabled={loading}
+                        className="p-3 bg-white/5 border border-white/10 rounded-2xl text-white/60 hover:text-white hover:bg-white/10 transition-all disabled:opacity-50"
+                        title="Force Refresh Cache"
+                    >
+                        <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+                    </button>
+
                     <div className="bg-white/5 border border-white/10 p-1.5 flex items-center gap-2 rounded-2xl">
                         <div className="px-4 py-2 bg-white/10 rounded-xl flex items-center gap-2">
                             <Github className="w-4 h-4 text-white/60" />
